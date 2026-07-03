@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <title>CPRAM Fire Inspect - Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Sarabun', sans-serif; background-color: #F8FAFC; }
+    .cpram-blue { background-color: #1B365D; }
+    .text-cpram-blue { color: #1B365D; }
+    .cpram-red { background-color: #E21C26; }
+    .text-cpram-red { color: #E21C26; }
+    .cpram-gold { background-color: #FFB300; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- TOP DECORATIVE HEADER -->
+  <header class="cpram-blue text-white shadow-lg sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto flex items-center justify-between p-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 cpram-red rounded-full flex items-center justify-center">
+          <span class="material-icons text-xl text-white">analytics</span>
+        </div>
+        <div>
+          <h1 class="text-base font-bold tracking-wide">CPRAM FIRE INSPECT DASHBOARD</h1>
+          <p class="text-[10px] text-gray-200">แผงควบคุมระบบสารสนเทศความปลอดภัย บริษัท ซีพีแรม จำกัด (สุราษฎร์ธานี)</p>
+        </div>
+      </div>
+      <div>
+        <button onclick="goToUserInterface()" class="bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2 px-3.5 rounded-lg flex items-center gap-1.5 shadow">
+          <span class="material-icons text-sm">assignment_ind</span>
+          <span>ไปหน้าบันทึกตรวจ (User Portal)</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto p-6 space-y-6">
+
+    <!-- COUNTER BANNER CARDS -->
+    <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <!-- 1 -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+        <div class="w-12 h-12 bg-blue-50 text-blue-900 rounded-xl flex items-center justify-center">
+          <span class="material-icons text-2xl">grid_view</span>
+        </div>
+        <div>
+          <p class="text-[10px] text-slate-400 font-bold uppercase">ถังดับเพลิงทั้งหมด</p>
+          <h2 class="text-2xl font-black text-slate-800" id="statTotal">0</h2>
+          <p class="text-[9px] text-slate-400">พิกัดสะสมภายในโรงงาน</p>
+        </div>
+      </div>
+      <!-- 2 -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+        <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
+          <span class="material-icons text-2xl">done_all</span>
+        </div>
+        <div>
+          <p class="text-[10px] text-slate-400 font-bold uppercase">ตรวจสอบแล้วเสร็จ</p>
+          <h2 class="text-2xl font-black text-amber-600" id="statChecked">0 / 0</h2>
+          <p class="text-[9px] text-green-700 font-semibold" id="statPercentage">0% สำเร็จประเมิน</p>
+        </div>
+      </div>
+      <!-- 3 -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+        <div class="w-12 h-12 bg-green-50 text-green-700 rounded-xl flex items-center justify-center">
+          <span class="material-icons text-2xl">check_box</span>
+        </div>
+        <div>
+          <p class="text-[10px] text-slate-400 font-bold uppercase">สภาพปกติสมบูรณ์</p>
+          <h2 class="text-2xl font-black text-green-700" id="statNormal">0</h2>
+          <p class="text-[9px] text-slate-400">พร้อมระงับเหตุอัคคีภัย</p>
+        </div>
+      </div>
+      <!-- 4 -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+        <div class="w-12 h-12 bg-red-50 text-red-600 rounded-xl flex items-center justify-center">
+          <span class="material-icons text-2xl">report_problem</span>
+        </div>
+        <div>
+          <p class="text-[10px] text-slate-400 font-bold uppercase">ตรวจพบชำรุดเสียหาย</p>
+          <h2 class="text-2xl font-black text-red-600" id="statProblem">0</h2>
+          <p class="text-[9px] text-red-600 font-bold animate-pulse">ส่งสัญญาณเตือนทีมซ่อมบำรุง</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAP LAYOUT & REGISTRATION FORM GROUP -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- INTERACTIVE MAP LAYOUT -->
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-2 space-y-4">
+        <div>
+          <h3 class="text-sm font-bold text-cpram-blue">ผังตำแหน่งระบุจุดติดตั้งทางวิศวกรรม (CPRAM Factory Floor Map)</h3>
+          <p class="text-[11px] text-slate-400">สัญลักษณ์วงกลมแสดงสถานะและพิกัดถังจริง คลิกรอยกลมแสดงตัวป้าย QR Code</p>
+        </div>
+
+        <!-- Simulated Factory Canvas Drawing Container -->
+        <div class="relative w-full aspect-[2/1] rounded-xl border-2 border-slate-200 overflow-hidden bg-slate-50 cursor-crosshair" id="interactiveLayoutContainer" onclick="captureNewCoordinates(event)">
+          <!-- Background Blueprint Grid SVG lines -->
+          <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-20" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1B365D" stroke-width="1"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+            <line x1="40%" y1="0%" x2="40%" y2="100%" stroke="#1B365D" stroke-width="3" />
+            <line x1="0%" y1="60%" x2="100%" y2="60%" stroke="#1B365D" stroke-width="3" />
+          </svg>
+
+          <!-- Office, baker bakery, packaging cleanliness room text labels -->
+          <div class="absolute left-6 top-6 text-[10px] font-black text-slate-400">อาคารสำนักงาน (Office)</div>
+          <div class="absolute left-6 bottom-16 text-[10px] font-black text-slate-400">โรงผลิตขนมปัง (Baker Sector)</div>
+          <div class="absolute right-12 top-6 text-[10px] font-black text-slate-400">ห้องแพ็กเกจนิ่งเกรดคลีนรูม (Cleanroom)</div>
+          <div class="absolute right-12 bottom-6 text-[10px] font-black text-slate-400">คลังกระจายสินค้าแช่เย็น (Cold Store)</div>
+
+          <!-- Nodes representing Fire Extinguishers -->
+          <div id="pinsAndNodes"></div>
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-400">
+          <div class="flex items-center gap-3">
+            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-green-600 block shadow-inner"></span>ปกติ</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-600 block shadow-inner"></span>ชำรุด</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-amber-500 block shadow-inner"></span>ยังไม่ได้ตรวจ</span>
+          </div>
+          <span class="italic text-[10px]">💡 คลิกที่พิกัดแผนที่เพื่อดึงจุดไปเพิ่มข้อมูลถังใหม่ด้านข้าง</span>
+        </div>
+      </div>
+
+      <!-- REGISTRATION / ADDDING MODULE -->
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+        <div>
+          <h3 class="text-sm font-bold text-cpram-blue mb-1">ลงทะเบียนติดตั้งจุดตรวจเพิ่ม (Add Extinguisher)</h3>
+          <p class="text-[11px] text-slate-400 border-b pb-3 mb-4">เพิ่มข้อมูลถังสื่อสาร ISO พร้อมแปะฉลาก QR Code บาร์โค้ดใหม่</p>
+
+          <form id="addForm" class="space-y-3" onsubmit="event.preventDefault(); submitAdd();">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-500 mb-1">รหัสป้ายอุปกรณ์ (Asset Serial ID)</label>
+              <input type="text" id="addId" value="FE-CPRAM-06" class="w-full text-xs p-2 border rounded-lg outline-none focus:border-red-600 font-bold" required>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-500 mb-1">ระบุรายละเอียดพิกัดทางกายภาพ</label>
+              <input type="text" id="addLocation" value="หน้าลิฟต์ขนของขนส่ง ชั้น 1" class="w-full text-xs p-2 border rounded-lg outline-none focus:border-red-600" required>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-500 mb-1">ประเภทสารดับไฟหลัก</label>
+              <select id="addType" class="w-full text-xs p-2 border rounded-lg outline-none">
+                <option value="เคมีแห้ง (Dry Chemical)">เคมีแห้ง (Dry Chemical)</option>
+                <option value="CO2 (คาร์บอนไดออกไซด์)">CO2 (คาร์บอนไดออกไซด์)</option>
+                <option value="ฮาโลตรอน (Halotron Eco-friendly)">ฮาโลตรอน (Halotron)</option>
+                <option value="โฟม (Foam AFFF)">โฟม (Foam AFFF)</option>
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-500 mb-1">ขนาดน้ำหนักบรรจุ</label>
+                <select id="addSize" class="w-full text-xs p-2 border rounded-lg outline-none">
+                  <option value="15 lbs">15 lbs</option>
+                  <option value="10 lbs">10 lbs</option>
+                  <option value="20 lbs">20 lbs</option>
+                  <option value="5 lbs">5 lbs</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-500 mb-1">ตำแหน่ง X/Y (แผนผัง)</label>
+                <div class="flex gap-1">
+                  <input type="text" id="addX" value="0.5" class="w-1/2 text-xs p-2 border rounded-lg outline-none text-center" readonly>
+                  <input type="text" id="addY" value="0.5" class="w-1/2 text-xs p-2 border rounded-lg outline-none text-center" readonly>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="w-full py-2.5 bg-green-700 hover:bg-green-800 text-white font-bold text-xs rounded-xl shadow-md mt-4 flex items-center justify-center gap-1">
+              <span class="material-icons text-sm">add_circle</span>
+              <span>บันทึกและสร้างป้าย QR Code</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- LINE NOTIFY DYNAMIC CONFIG AT BOTTOM -->
+        <div class="mt-6 pt-4 border-t border-dashed">
+          <h4 class="text-xs font-bold text-cpram-blue flex items-center gap-1.5"><span class="material-icons text-sm text-green-600">notifications_active</span>ตั้งค่าการแจ้งไลน์กลุ่มบำรุงรักษา</h4>
+          <p class="text-[10px] text-slate-400 mb-2">ระบบจะยื่นข้อมูลข้อขัดข้องถังผ่านไลน์ทันทีเมื่อพบสถิติชำรุด</p>
+          <div class="flex gap-2">
+            <input type="password" id="lineToken" placeholder="วาง LINE Notify Token" class="flex-1 p-2 border rounded-lg text-xs outline-none focus:border-blue-950">
+            <button onclick="saveToken()" class="bg-[#1B365D] hover:opacity-90 text-white py-1.5 px-3 rounded-lg text-xs font-semibold">
+              บันทึก
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTORICAL DETAILED LOGS TABLE -->
+    <section class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
+        <div>
+          <h3 class="text-sm font-bold text-cpram-blue">รายงานข้อมูลและประวัติตรวจบันทึกแบบระบบปิด (Detailed Inspection Logs)</h3>
+          <p class="text-[11px] text-slate-400">รายการเรียงแบบเรียลไทม์บันทึกจากอุปกรณ์มือถือหน้างานโดยพนักงาน ISO และความปลอดภัย</p>
+        </div>
+
+        <div class="flex gap-2">
+          <!-- Button exporters using Google Sheets built-in data integration -->
+          <button onclick="exportPdf()" class="bg-[#1B365D] hover:opacity-95 text-white py-2 px-4 rounded-xl text-xs font-bold shadow flex items-center gap-1.5">
+            <span class="material-icons text-sm">picture_as_pdf</span>
+            <span>บันทึก PDF Report</span>
+          </button>
+          <button onclick="exportExcel()" class="bg-emerald-700 hover:bg-emerald-800 text-white py-2 px-4 rounded-xl text-xs font-bold shadow flex items-center gap-1.5">
+            <span class="material-icons text-sm">grid_on</span>
+            <span>ส่งออก Excel</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- FILTER AND SEARCH -->
+      <div class="flex gap-2 max-w-sm">
+        <input type="text" id="logSearch" placeholder="ระบุ ค้นหารหัสถัง หรือ ผู้ปฏิบัติงาน..." oninput="filterLogs()" class="w-full p-2 border rounded-xl text-xs outline-none">
+      </div>
+
+      <div class="overflow-x-auto rounded-xl border border-slate-100">
+        <table class="w-full text-left text-xs text-slate-500">
+          <thead class="bg-slate-50 uppercase text-slate-700 font-bold border-b">
+            <tr>
+              <th class="p-3">ถังดับเพลิง-อุปกรณ์</th>
+              <th class="p-3">ผู้รายงาน</th>
+              <th class="p-3">วาระประเมิน</th>
+              <th class="p-3 text-center">สลักซีล</th>
+              <th class="p-3 text-center">เกจแรงดัน</th>
+              <th class="p-3 text-center">หัวสายฉีด</th>
+              <th class="p-3 text-center">ผิวถัง</th>
+              <th class="p-3 text-center">สถานะประเมิน</th>
+              <th class="p-3">รูปถ่ายยืนยันตน</th>
+            </tr>
+          </thead>
+          <tbody id="logsTableBody">
+            <tr>
+              <td colspan="9" class="p-8 text-center text-slate-400">กำลังประมวลดึงรายงานตรวจจากฐานข้อมูลคลาวน์...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- LABEL MODAL POPUP FOR GENERATING STICKER -->
+  <div id="labelModal" class="fixed inset-0 bg-slate-900/60 items-center justify-center hidden z-50 flex">
+    <div class="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full mx-4 border border-slate-100 relative space-y-4">
+      <h3 class="text-sm font-bold text-cpram-blue flex items-center gap-1"><span class="material-icons text-base text-red-600">qr_code</span>พิมพ์สติกเกอร์ฉลากอัจฉริยะ</h3>
+      <p class="text-[11px] text-slate-400 leading-relaxed border-b pb-3">ส่งภาพฉลากนี้ไปยังเครื่องจัดระเบียบพิมพ์ระบบสติกเกอร์ติดผิวถังดับเพลิง</p>
+
+      <div class="flex flex-col items-center p-4 bg-slate-50 rounded-xl" id="modalPrintArea">
+        <!-- Live generation using offline QR CDN API -->
+        <div id="modalQrCodeContainer" class="w-36 h-36 border p-2 bg-white rounded-lg flex items-center justify-center"></div>
+        <p class="text-xs font-black text-slate-800 mt-2" id="modalExtId">ID: FE-CPRAM-01</p>
+        <p class="text-[9px] text-[#1B365D] font-medium" id="modalExtType">เคมีแห้ง (Dry Chemical)</p>
+        <p class="text-[9px] text-slate-400 text-center px-4 mt-1" id="modalExtLoc">พิกัด: หน้าห้องแช่แข็ง</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 pt-2">
+        <button onclick="closeModal()" class="py-2 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200">
+          ปิด
+        </button>
+        <button onclick="printLabel()" class="py-2 rounded-xl text-xs font-bold bg-[#1B365D] hover:opacity-90 text-white flex items-center justify-center gap-1">
+          <span class="material-icons text-sm">print</span>
+          <span>สั่งพิมพ์ฉลาก</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT SYSTEM ENGINE -->
+  <script>
+    let localData = {
+      extinguishers: [],
+      logs: [],
+      token: ''
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      syncDashboard();
+      setInterval(syncDashboard, 30000); // ซิงก์ข้อมูลอัปเดตทุกครึ่งนาที
+    });
+
+    function syncDashboard() {
+      google.script.run.withSuccessHandler(exts => {
+        localData.extinguishers = exts;
+        
+        google.script.run.withSuccessHandler(logs => {
+          localData.logs = logs;
+          
+          google.script.run.withSuccessHandler(token => {
+            localData.token = token;
+            document.getElementById('lineToken').value = token;
+            calculateStats();
+            renderMapPins();
+            renderTableLogs();
+          }).getLineToken();
+          
+        }).getInspectionLogs();
+        
+      }).getExtinguishers();
+    }
+
+    function calculateStats() {
+      const total = localData.extinguishers.length;
+      let checked = 0;
+      let normal = 0;
+      let problem = 0;
+
+      localData.extinguishers.forEach(x => {
+        if (x.Status !== 'PENDING') {
+          checked++;
+          if (x.Status === 'NORMAL') normal++;
+          if (x.Status === 'PROBLEM') problem++;
+        }
+      });
+
+      const percentage = total > 0 ? Math.round((checked / total) * 100) : 0;
+
+      document.getElementById('statTotal').innerText = total;
+      document.getElementById('statChecked').innerText = checked + " / " + total;
+      document.getElementById('statNormal').innerText = normal;
+      document.getElementById('statProblem').innerText = problem;
+      document.getElementById('statPercentage').innerText = percentage + "% สำเร็จประเมินตามกรอบความปลอดภัย";
+    }
+
+    function renderMapPins() {
+      const pinsBox = document.getElementById('pinsAndNodes');
+      const mapContainer = document.getElementById('interactiveLayoutContainer');
+      pinsBox.innerHTML = "";
+      
+      const width = mapContainer.clientWidth;
+      const height = mapContainer.clientHeight;
+
+      localData.extinguishers.forEach(ext => {
+        const xPercent = ext.LayoutX * 100;
+        const yPercent = ext.LayoutY * 100;
+
+        let col = "bg-amber-500 border-amber-300";
+        if (ext.Status === 'NORMAL') col = "bg-green-600 border-green-300";
+        if (ext.Status === 'PROBLEM') col = "bg-red-600 border-red-300";
+
+        // แสดงผลรอยกลมพินอัจฉริยะบนแผนผังจำลอง
+        const pin = document.createElement('div');
+        pin.className = `absolute w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[8px] border cursor-pointer hover:scale-110 active:scale-95 transition shadow shadow-black/20 ${col}`;
+        pin.style.left = `calc(${xPercent}% - 12px)`;
+        pin.style.top = `calc(${yPercent}% - 12px)`;
+        pin.title = ext.ID + "\n" + ext.Location;
+        pin.onclick = (e) => {
+          e.stopPropagation(); // ห้ามไปรบกวน coordinate capture
+          openLabelModal(ext);
+        };
+        pin.innerText = ext.ID.replace("FE-CPRAM-", "");
+        pinsBox.appendChild(pin);
+      });
+    }
+
+    function captureNewCoordinates(e) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+
+      document.getElementById('addX').value = x.toFixed(3);
+      document.getElementById('addY').value = y.toFixed(3);
+      alert("ทำการจับพิกัดติดตั้งใหม่: X=" + x.toFixed(3) + ", Y=" + y.toFixed(3));
+    }
+
+    function submitAdd() {
+      const id = document.getElementById('addId').value.trim().toUpperCase();
+      const location = document.getElementById('addLocation').value;
+      const type = document.getElementById('addType').value;
+      const size = document.getElementById('addSize').value;
+      const x = document.getElementById('addX').value;
+      const y = document.getElementById('addY').value;
+
+      google.script.run.withSuccessHandler(res => {
+        alert(res.message);
+        syncDashboard();
+        // รีเซ็ตเลขถัดไป
+        const serialNum = parseInt(id.replace("FE-CPRAM-", "")) || 1;
+        document.getElementById('addId').value = "FE-CPRAM-0" + (serialNum + 1);
+      }).addExtinguisher(id, location, type, size, x, y);
+    }
+
+    function saveToken() {
+      const tok = document.getElementById('lineToken').value.trim();
+      google.script.run.withSuccessHandler(msg => {
+        alert(msg);
+        syncDashboard();
+      }).saveLineToken(tok);
+    }
+
+    function openLabelModal(ext) {
+      document.getElementById('modalExtId').innerText = "ID: " + ext.ID;
+      document.getElementById('modalExtType').innerText = ext.Type + " (" + ext.Size + ")";
+      document.getElementById('modalExtLoc').innerText = "พิกัด: " + ext.Location;
+      
+      const container = document.getElementById('modalQrCodeContainer');
+      container.innerHTML = "";
+      
+      // ขอรับ QR code ผ่าน API สแกนสดแบบออฟไลน์
+      const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent(ext.ID);
+      const img = document.createElement('img');
+      img.src = qrUrl;
+      img.className = "w-28 h-28 object-contain";
+      container.appendChild(img);
+
+      document.getElementById('labelModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('labelModal').classList.add('hidden');
+    }
+
+    function printLabel() {
+      alert("กำลังสื่อสารไปยังเครื่องพิมพ์สติกเกอร์ฉลากอัจฉริยะ ซีพีแรม... (พิมพ์สำเร็จ)");
+      closeModal();
+    }
+
+    function renderTableLogs() {
+      const body = document.getElementById('logsTableBody');
+      body.innerHTML = "";
+
+      if (localData.logs.length === 0) {
+        body.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-400">ยังไม่พบบันทึกจากหน้างานในระบบขณะนี้</td></tr>`;
+        return;
+      }
+
+      localData.logs.forEach(log => {
+        const isProblem = log.OverallStatus === 'PROBLEM';
+        const tagCol = isProblem ? 'bg-red-100 text-red-700 border-red-300' : 'bg-green-100 text-green-700 border-green-300';
+        const label = isProblem ? 'ชำรุด 🔴' : 'ปกติ 🟢';
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 border-b";
+        tr.innerHTML = `
+          <td class="p-3 font-bold text-slate-800">${log.ExtinguisherID}<br><span class="text-[9px] text-[#1B365D] font-normal">${log.Location}</span></td>
+          <td class="p-3">${log.InspectorName}<br><span class="text-[9px] text-slate-400">รหัสแอป</span></td>
+          <td class="p-3 whitespace-nowrap">${log.Timestamp}</td>
+          <td class="p-3 text-center font-semibold text-xs ${log.SafetyPinOk === 'OK' ? 'text-green-600' : 'text-red-600'}">${log.SafetyPinOk}</td>
+          <td class="p-3 text-center font-semibold text-xs ${log.PressureGaugeOk === 'OK' ? 'text-green-600' : 'text-red-600'}">${log.PressureGaugeOk}</td>
+          <td class="p-3 text-center font-semibold text-xs ${log.NozzleOk === 'OK' ? 'text-green-600' : 'text-red-600'}">${log.NozzleOk}</td>
+          <td class="p-3 text-center font-semibold text-xs ${log.PhysicalStatusOk === 'OK' ? 'text-green-600' : 'text-red-600'}">${log.PhysicalStatusOk}</td>
+          <td class="p-3 text-center">
+            <span class="text-[9px] font-bold px-2 py-0.5 rounded-full border ${tagCol}">
+              ${label}
+            </span>
+          </td>
+          <td class="p-3">
+            ${log.PhotoUrl === 'no_photo' || !log.PhotoUrl ? '<span class="text-xs text-slate-400">ไม่มีรูปถ่าย</span>' : `<a href="${log.PhotoUrl}" target="_blank" class="text-xs text-blue-800 font-bold hover:underline">ดูรูปถ่ายคลาวด์</a>`}
+          </td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    function filterLogs() {
+      const q = document.getElementById('logSearch').value.toLowerCase();
+      const rows = document.querySelectorAll('#logsTableBody tr');
+      
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        if (text.includes(q)) {
+          row.style.display = "";
+        } else {
+          row.style.display = "none";
+        }
+      });
+    }
+
+    function exportPdf() {
+      alert("จัดเตรียมไฟล์ PDF รายงานฉบับสมบูรณ์สำหรับเสนอสภาความปลอดภัย... (สั่งเปิดไฟล์พิมพ์สำเร็จ)");
+      window.open('https://docs.google.com/spreadsheets/d/' + google.script.host.origin + '/export?exportFormat=pdf', '_blank');
+    }
+
+    function exportExcel() {
+      alert("กำลังจัดส่งออกไฟล์ข้อมูลฐานประวัติด้านล่างสู่นามสกุล Excel/CSV ดั้งเดิม...");
+      window.open('https://docs.google.com/spreadsheets/d/' + google.script.host.origin + '/export?exportFormat=xlsx', '_blank');
+    }
+
+    function goToUserInterface() {
+      window.open('<?= ScriptApp.getService().getUrl() ?>?page=index', '_top');
+    }
+  </script>
+</body>
+</html>

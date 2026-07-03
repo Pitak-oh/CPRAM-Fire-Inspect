@@ -1,0 +1,6 @@
+{
+  "name": "CPRAM Fire Inspect",
+  "description": "ระบบตรวจสอบถังดับเพลิงอัจฉริยะสำหรับ บริษัท ซีพีแรม จำกัด (สุราษฎร์ธานี) / Intelligent Fire Extinguisher Inspection System for CPRAM Co., Ltd. (Surat Thani). Support real-time sync, local Room persistence, QR scanning, photo confirmation, LINE Notify alerts, dynamic dashboards, and PDF report export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

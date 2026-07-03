@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <title>CPRAM Fire Inspect</title>
+  <!-- Material Symbols & Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- HTML5 QR Code Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <style>
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background-color: #F3F4F6;
+    }
+    .cpram-blue { background-color: #1B365D; }
+    .text-cpram-blue { color: #1B365D; }
+    .cpram-red { background-color: #E21C26; }
+    .border-cpram-red { border-color: #E21C26; }
+    .text-cpram-red { color: #E21C26; }
+    .cpram-gold { background-color: #FFB300; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+  <!-- NAVIGATION HEADER -->
+  <header class="cpram-blue text-white shadow-md">
+    <div class="max-w-md mx-auto flex items-center justify-between p-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 cpram-red rounded-full flex items-center justify-center">
+          <span class="material-icons text-2xl text-white">local_fire_department</span>
+        </div>
+        <div>
+          <h1 class="text-sm font-bold tracking-wide">CPRAM FIRE INSPECT</h1>
+          <p class="text-[10px] text-gray-200">ตรวจสอบถังดับเพลิงซีพีแรม (สุราษฎร์ธานี)</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="logoutBtn" onclick="logout()" class="hidden bg-red-600 hover:bg-red-700 text-white rounded p-1.5 flex items-center shadow">
+          <span class="material-icons text-sm">exit_to_app</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- OFFLINE INDICATOR -->
+  <div id="offlineBanner" class="bg-amber-100 border-b border-amber-200 text-amber-800 text-xs px-4 py-2 hidden">
+    <div class="max-w-md mx-auto flex items-center gap-2">
+      <span class="material-icons text-sm text-amber-600">cloud_off</span>
+      <span>ขณะนี้อุปกรณ์ทำงานใน <b>โหมดออฟไลน์</b> ข้อมูลจะบันทึกเก็บที่เครื่องก่อนซิงก์ภายหลัง</span>
+    </div>
+  </div>
+
+  <!-- CONTAINER -->
+  <main class="max-w-md mx-auto p-4 pb-20">
+
+    <!-- 1. SIGN IN SCREEN -->
+    <div id="loginView" class="block space-y-6 mt-4">
+      <div class="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+        <div class="text-center mb-6">
+          <h2 class="text-lg font-bold text-cpram-blue">ลงชื่อเข้าใช้งานผู้ปฏิบัติงาน</h2>
+          <p class="text-xs text-gray-400 mt-1">กรุณากรอกรหัสพนักงานความปลอดภัยโรงงาน</p>
+        </div>
+
+        <!-- Role Quick Switcher -->
+        <div class="grid grid-cols-2 gap-2 mb-4">
+          <button onclick="autofill('inspector')" id="roleUserBtn" class="py-2 px-3 text-xs rounded-xl border border-gray-200 text-center font-medium cpram-blue text-white shadow">
+            พนักงานตรวจ (User)
+          </button>
+          <button onclick="autofill('admin')" id="roleAdminBtn" class="py-2 px-3 text-xs rounded-xl border border-gray-200 text-center text-gray-600 font-medium bg-gray-50">
+            ผู้จัดการ (Admin)
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">รหัสพนักงาน / ชื่อผู้ใช้งาน</label>
+            <input type="text" id="username" class="w-full p-2.5 border rounded-xl text-sm focus:ring-1 focus:ring-blue-950 outline-none" value="inspector">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">รหัสผ่านความปลอดภัย (CPRAM Pass)</label>
+            <input type="password" id="password" class="w-full p-2.5 border rounded-xl text-sm focus:ring-1 focus:ring-blue-950 outline-none" value="cpram123">
+          </div>
+          <button onclick="probeLogin()" class="w-full py-3 cpram-red hover:bg-red-700 text-white font-bold text-sm rounded-xl shadow-lg mt-6 flex items-center justify-center gap-2">
+            <span>เข้าสู่ระบบความปลอดภัย</span>
+            <span class="material-icons text-sm">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 2FA SCREEN -->
+    <div id="twoFactorView" class="hidden space-y-6 mt-4">
+      <div class="bg-white rounded-2xl shadow-xl p-6 border border-gray-100 text-center">
+        <div class="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-200">
+          <span class="material-icons text-amber-500 text-2xl">shield_person</span>
+        </div>
+        <h3 class="text-base font-bold text-cpram-blue">การยืนยันตัวตนสองชั้น (2FA)</h3>
+        <p class="text-xs text-gray-400 mt-1 px-4">ใส่รหัส OTP ยืนยันสิทธิ์เข้างานแผนกตรวจสอบวิศวกรรม</p>
+
+        <!-- Mock Prompt -->
+        <div class="bg-amber-50 border border-amber-100 rounded-xl p-3 my-4">
+          <p class="text-[11px] text-amber-700 font-medium">💡 รหัสยืนยันผ่านเครื่องฝึกสแกน: <b class="text-amber-900">2612</b></p>
+        </div>
+
+        <div class="max-w-[200px] mx-auto mb-6">
+          <input type="text" id="otpCode" maxlength="4" placeholder="••••" class="w-full p-3 border-2 border-dashed rounded-xl text-center text-xl font-bold tracking-widest focus:border-blue-900 outline-none">
+          <span id="otpError" class="text-[11px] text-red-500 mt-1 block h-4"></span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button onclick="backToLogin()" class="py-2.5 rounded-xl border border-gray-300 text-xs font-semibold text-gray-600 bg-white hover:bg-gray-50">
+            ย้อนกลับ
+          </button>
+          <button onclick="verify2FA()" class="py-2.5 rounded-xl cpram-blue hover:opacity-95 text-white text-xs font-bold shadow">
+            ยืนยันรหัส
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. INSPECTOR HOME VIEW -->
+    <div id="inspectorView" class="hidden space-y-4 class-transition duration-200">
+      
+      <!-- User Banner Badge -->
+      <div class="bg-white rounded-xl shadow-md p-4 flex items-center justify-between border-l-4 border-l-blue-900">
+        <div>
+          <p class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Inspector Active Session</p>
+          <h4 id="userTag" class="text-sm font-bold text-cpram-blue">รหัสพนักงาน: inspector (User)</h4>
+        </div>
+        <div class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded">
+          พร้อมรายงาน 🟢
+        </div>
+      </div>
+
+      <!-- Quick Scan Section banner -->
+      <div class="bg-gradient-to-br from-[#1B365D] to-[#0D1B2E] text-white rounded-2xl shadow-xl p-5 overflow-hidden relative">
+        <div class="absolute right-[-10px] bottom-[-10px] opacity-10">
+          <span class="material-icons text-9xl">qr_code_scanner</span>
+        </div>
+        <h3 class="text-sm font-semibold tracking-wide text-amber-400">สแกนถังดับเพลิงเพื่อรายงานความคืบหน้า</h3>
+        <p class="text-xs text-gray-200 mt-2">เปิดกล้องส่อง QR Code ที่อยู่บนป้ายพิกัดเพื่อทำแบบสอบถาม ISO ภายในอาคาร ซีพีแรม</p>
+        <div class="flex gap-2 mt-5">
+          <button onclick="startScanning()" class="bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl flex items-center gap-1.5 shadow-md">
+            <span class="material-icons text-sm">camera_alt</span>
+            <span>เปิดกล้องตรวจสแกน</span>
+          </button>
+          <button onclick="showQuickBypass()" class="bg-white/10 hover:bg-white/20 text-white font-bold text-xs py-2.5 px-4 rounded-xl flex items-center gap-1.5 border border-white/20">
+            <span class="material-icons text-sm">keyboard</span>
+            <span>ตรวจด้วยการระบุรหัส</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bypass Code Entry Card (Hidden by default) -->
+      <div id="bypassCard" class="hidden bg-white p-4 rounded-xl shadow border border-gray-100">
+        <label class="block text-xs font-semibold text-gray-600 mb-1">ป้อนรหัสอุปกรณ์ด้วยมือ (เช่น FE-CPRAM-01):</label>
+        <div class="flex gap-2">
+          <input type="text" id="bypassCode" placeholder="ระบุเลขรหัสสินทรัพย์" class="flex-1 p-2 border rounded-lg text-sm uppercase">
+          <button onclick="triggerBypassScan()" class="bg-blue-900 border text-white px-4 rounded-lg text-xs font-semibold">
+            ตกลง
+          </button>
+        </div>
+      </div>
+
+      <!-- QR Viewfinder Box -->
+      <div id="cameraScannerBox" class="hidden bg-black rounded-2xl overflow-hidden shadow-2xl relative p-2 border border-blue-900">
+        <div id="qrReader" class="w-full"></div>
+        <button onclick="stopScanning()" class="w-full mt-2 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg">
+          ปิดหน้าต่างสแกนเนอร์
+        </button>
+      </div>
+
+      <!-- List of Extinguishers -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold text-cpram-blue uppercase tracking-wider">บัญชีพิกัดจำลองของโรงงาน</h3>
+          <button onclick="refreshDataList()" class="text-xs text-blue-800 flex items-center gap-1 font-medium">
+            <span class="material-icons text-xs">sync</span> รีเฟรชฐานข้อมูล
+          </button>
+        </div>
+
+        <div id="assetList" class="space-y-2">
+          <!-- Populated by JavaScript -->
+          <p class="text-center text-xs text-gray-400 py-6">กำลังดึงข้อมูลถังขยายจากเซิร์ฟเวอร์...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. INSPECTION ISO FORM VIEW (The 5-Point system audit with physical snapshot) -->
+    <div id="formView" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl shadow-lg p-5 border border-gray-100">
+        <div class="flex items-center gap-3 border-b pb-3 mb-4">
+          <button onclick="showInspectorHome()" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center">
+            <span class="material-icons text-cpram-blue text-sm">arrow_back</span>
+          </button>
+          <div>
+            <h3 class="text-sm font-bold text-cpram-blue" id="formExtId">รหัสสินทรัพย์: -</h3>
+            <p id="formExtLocation" class="text-[10px] text-gray-400">ตำแหน่ง: -</p>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <!-- 1. PRESSURE GAUGE -->
+          <div class="p-3 bg-gray-50 rounded-xl flex items-center justify-between border">
+            <div>
+              <h4 class="text-xs font-bold text-gray-700">1. เกจวัดแรงดัน (Pressure Gauge)</h4>
+              <p class="text-[10px] text-gray-400">เข็มสแกนอยู่ที่แถบสีเขียว (ไม่ต่ำ/สูงเกินไป)</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="toggleCheck('pressure', true)" id="pressureOkBtn" class="px-3 py-1 rounded-md text-xs font-semibold bg-green-100 text-green-700 border-2 border-green-600">ปกติ</button>
+              <button onclick="toggleCheck('pressure', false)" id="pressureFailBtn" class="px-3 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-600">ชำรุด</button>
+            </div>
+          </div>
+
+          <!-- 2. SAFETY PIN -->
+          <div class="p-3 bg-gray-50 rounded-xl flex items-center justify-between border">
+            <div>
+              <h4 class="text-xs font-bold text-gray-700">2. สลักล็อกและซีลร้อย (Safety Pin)</h4>
+              <p class="text-[10px] text-gray-400">สลักขัดเหล็กอยู่ครบไม่คดงอ ซีลไนลอนไม่ขาด</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="toggleCheck('pin', true)" id="pinOkBtn" class="px-3 py-1 rounded-md text-xs font-semibold bg-green-100 text-green-700 border-2 border-green-600">ปกติ</button>
+              <button onclick="toggleCheck('pin', false)" id="pinFailBtn" class="px-3 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-600">ชำรุด</button>
+            </div>
+          </div>
+
+          <!-- 3. HOSE & NOZZLE -->
+          <div class="p-3 bg-gray-50 rounded-xl flex items-center justify-between border">
+            <div>
+              <h4 class="text-xs font-bold text-gray-700">3. สายฉีดและหัวคอปเปอร์ (Hose & Nozzle)</h4>
+              <p class="text-[10px] text-gray-400">ไม่แห้งแข็งแตกหัก หัวฉีดขยายปากกว้างไม่มีสิ่งอุดตัน</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="toggleCheck('hose', true)" id="hoseOkBtn" class="px-3 py-1 rounded-md text-xs font-semibold bg-green-100 text-green-700 border-2 border-green-600">ปกติ</button>
+              <button onclick="toggleCheck('hose', false)" id="hoseFailBtn" class="px-3 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-600">ชำรุด</button>
+            </div>
+          </div>
+
+          <!-- 4. PHYSICAL BODY -->
+          <div class="p-3 bg-gray-50 rounded-xl flex items-center justify-between border">
+            <div>
+              <h4 class="text-xs font-bold text-gray-700">4. สภาพตัวถังภายนอก (Physical Body)</h4>
+              <p class="text-[10px] text-gray-400">ไม่ขึ้นสนิม ไม่มีรอยผุ บิ่น หรือบวมพอง</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="toggleCheck('body', true)" id="bodyOkBtn" class="px-3 py-1 rounded-md text-xs font-semibold bg-green-100 text-green-700 border-2 border-green-600">ปกติ</button>
+              <button onclick="toggleCheck('body', false)" id="bodyFailBtn" class="px-3 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-600">ชำรุด</button>
+            </div>
+          </div>
+
+          <!-- PHOTO SNAPSHOT CAPABILITY -->
+          <div class="p-3 bg-blue-50/50 rounded-xl border border-dashed border-blue-300">
+            <h4 class="text-xs font-bold text-cpram-blue mb-1">5. ถ่ายภาพหน้างานยืนยันตนสำหรับการตรวจ (Snapshot)</h4>
+            <p class="text-[9px] text-gray-400 mb-2">เพื่อให้ตรงตามแนวทาง Audit ISO แนะนำให้พนักงานถ่ายรูปเก็บหลักฐาน</p>
+            
+            <div class="flex flex-col items-center gap-2">
+              <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="previewPhoto()" class="hidden">
+              <button onclick="triggerCameraInput()" class="w-full py-2 bg-white hover:bg-gray-50 text-cpram-blue border rounded-lg text-xs font-semibold flex items-center justify-center gap-1 shadow-sm">
+                <span class="material-icons text-sm">photo_camera</span>
+                <span>เปิดใช้งานกล้องถ่ายรูปรับบ</span>
+              </button>
+              
+              <!-- Preview Display inside form -->
+              <div id="photoPreviewContainer" class="hidden relative w-full aspect-video rounded-lg overflow-hidden border border-gray-100 mt-2 bg-black">
+                <img id="photoPreview" class="w-full h-full object-contain">
+                <button onclick="clearPhoto()" class="absolute right-2 top-2 w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg">
+                  <span class="material-icons text-xs">close</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- REMARKS -->
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">รายละเอียดข้อสังเกต / การชำรุดเพิ่มเติม</label>
+            <textarea id="remarksText" rows="2" placeholder="ระบุเพิ่มเติม เช่น ชำรุดสีถลอกเล็กน้อย หรือแรงดันตกเล็กน้อย" class="w-full p-2.5 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-blue-900"></textarea>
+          </div>
+
+          <!-- SUBMIT ACCENT AT BOTTOM -->
+          <div class="pt-4 border-t flex gap-2">
+            <button onclick="showInspectorHome()" class="flex-1 py-3 text-xs bg-gray-200 text-gray-700 font-bold rounded-xl shadow hover:bg-gray-300">
+              ย้อนกลับหน้าหลัก
+            </button>
+            <button onclick="probeSubmit()" class="flex-1 py-3 text-xs cpram-red text-white font-bold rounded-xl shadow shadow-red-200 hover:bg-red-700 flex items-center justify-center gap-1">
+              <span id="submitSpinner" class="hidden inline-block animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full mr-1"></span>
+              <span>ส่งข้อมูลยืนยันตรวจ</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- OFFLINE FLOATING BADGE -->
+  <div id="pendingSyncBadge" class="fixed right-4 bottom-4 bg-[#FFB300] text-gray-900 px-3 py-2 rounded-full shadow-lg z-50 flex items-center gap-1.5 cursor-pointer opacity-90 hover:opacity-100 hidden" onclick="syncOfflineQueue()">
+    <span class="material-icons text-sm animate-bounce">cloud_upload</span>
+    <span class="text-[10px] font-bold" id="pendingSyncText">มีรายการตกค้าง 1 รายการ สั่งซิงก์</span>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC BLOCK -->
+  <script>
+    // System Local Memory Variables
+    let appState = {
+      userRole: null,
+      userName: null,
+      extinguishers: [],
+      scannedId: null,
+      activeFormChecks: {
+        pressure: true,
+        pin: true,
+        hose: true,
+        body: true
+      },
+      currentPhotoBase64: null,
+      offlineQueue: JSON.parse(localStorage.getItem('cpram_offline_queue') || '[]'),
+      isOnline: navigator.onLine
+    };
+
+    // Tracking Dynamic HTML Components
+    const html = {
+      loginView: document.getElementById('loginView'),
+      twoFactorView: document.getElementById('twoFactorView'),
+      inspectorView: document.getElementById('inspectorView'),
+      formView: document.getElementById('formView'),
+      logoutBtn: document.getElementById('logoutBtn'),
+      roleUserBtn: document.getElementById('roleUserBtn'),
+      roleAdminBtn: document.getElementById('roleAdminBtn'),
+      assetList: document.getElementById('assetList'),
+      cameraScannerBox: document.getElementById('cameraScannerBox'),
+      bypassCard: document.getElementById('bypassCard'),
+      offlineBanner: document.getElementById('offlineBanner'),
+      pendingSyncBadge: document.getElementById('pendingSyncBadge'),
+      pendingSyncText: document.getElementById('pendingSyncText')
+    };
+
+    // ----------------------------------------------------
+    // INITIALIZATION & SYNC
+    // ----------------------------------------------------
+    window.addEventListener('DOMContentLoaded', () => {
+      // ตรวจระดับอินเทอร์เน็ต
+      window.addEventListener('online', updateOnlineStatus);
+      window.addEventListener('offline', updateOnlineStatus);
+      updateOnlineStatus();
+
+      // โหลดพิกัดถังเริ่มต้น
+      loadExtinguishers();
+      updateOfflineBadge();
+    });
+
+    function updateOnlineStatus() {
+      appState.isOnline = navigator.onLine;
+      if (appState.isOnline) {
+        html.offlineBanner.classList.add('hidden');
+        syncOfflineQueue(); // ซิงก์ข้อมูลทันทีเมื่อออนไลน์
+      } else {
+        html.offlineBanner.classList.remove('hidden');
+      }
+    }
+
+    // โหลดฐานข้อมูล
+    function loadExtinguishers() {
+      if (!appState.isOnline) {
+        const cached = localStorage.getItem('cpram_devices_cache');
+        if (cached) {
+          appState.extinguishers = JSON.parse(cached);
+          renderList();
+        }
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(data => {
+          appState.extinguishers = data;
+          localStorage.setItem('cpram_devices_cache', JSON.stringify(data));
+          renderList();
+        })
+        .withFailureHandler(err => {
+          console.error("ผิดพลาดดึงถังดับเพลิง: ", err);
+        })
+        .getExtinguishers();
+    }
+
+    // ----------------------------------------------------
+    // SIGN IN SECTION
+    // ----------------------------------------------------
+    function autofill(role) {
+      if (role === 'inspector') {
+        document.getElementById('username').value = 'inspector';
+        document.getElementById('password').value = 'cpram123';
+        html.roleUserBtn.className = "py-2 px-3 text-xs rounded-xl font-medium cpram-blue text-white shadow";
+        html.roleAdminBtn.className = "py-2 px-3 text-xs rounded-xl border border-gray-200 text-center text-gray-600 font-medium bg-gray-50";
+      } else {
+        document.getElementById('username').value = 'admin';
+        document.getElementById('password').value = 'cpram123';
+        html.roleAdminBtn.className = "py-2 px-3 text-xs rounded-xl font-medium cpram-red text-white shadow";
+        html.roleUserBtn.className = "py-2 px-3 text-xs rounded-xl border border-gray-200 text-center text-gray-600 font-medium bg-gray-50";
+      }
+    }
+
+    function probeLogin() {
+      const user = document.getElementById('username').value.trim();
+      const pass = document.getElementById('password').value;
+
+      if ((user === 'inspector' && pass === 'cpram123') || (user === 'admin' && pass === 'cpram123')) {
+        appState.userName = user;
+        // ย้ายไปยืนยัน 2FA
+        html.loginView.classList.add('hidden');
+        html.twoFactorView.classList.remove('hidden');
+      } else {
+        alert("รหัสผ่านไม่ถูกต้อง หรือสิทธิ์ผู้ใช้งานผิดพลาด กรุณาลองอีกครั้ง");
+      }
+    }
+
+    function backToLogin() {
+      html.twoFactorView.classList.add('hidden');
+      html.loginView.classList.remove('hidden');
+    }
+
+    function verify2FA() {
+      const otp = document.getElementById('otpCode').value;
+      const errorLabel = document.getElementById('otpError');
+
+      if (otp === '2612') {
+        errorLabel.innerText = "";
+        // ล็อกอินสำเร็จเสร็จสิ้น
+        appState.userRole = appState.userName === 'admin' ? 'ADMIN' : 'INSPECTOR';
+        
+        // หากคนล็อกอินเป็น ADMIN ให้ย้ายไป URL /dashboard
+        if (appState.userRole === 'ADMIN') {
+          window.open('<?= ScriptApp.getService().getUrl() ?>?page=dashboard', '_top');
+          return;
+        }
+
+        html.twoFactorView.classList.add('hidden');
+        html.inspectorView.classList.remove('hidden');
+        html.logoutBtn.classList.remove('hidden');
+        document.getElementById('userTag').innerText = "รหัสพนักงาน: " + appState.userName + " (User)";
+      } else {
+        errorLabel.innerText = "รหัสความบันเทิง OTP ผิดพลาด กรุณากรอก 2612";
+      }
+    }
+
+    function logout() {
+      appState.userRole = null;
+      appState.userName = null;
+      html.inspectorView.classList.add('hidden');
+      html.formView.classList.add('hidden');
+      html.logoutBtn.classList.add('hidden');
+      html.loginView.classList.remove('hidden');
+    }
+
+    // ----------------------------------------------------
+    // SCANNING PROCEDURES (HTML5 QR Scanner integration)
+    // ----------------------------------------------------
+    let qrScanner = null;
+
+    function startScanning() {
+      html.cameraScannerBox.classList.remove('hidden');
+      
+      qrScanner = new Html5Qrcode("qrReader");
+      const config = { fps: 10, qrbox: { width: 200, height: 200 } };
+      
+      qrScanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+          stopScanning();
+          openInspectionForm(decodedText);
+        },
+        (errorMessage) => {
+          // ค้นหา QR ล้มเหลวชั่วคราว ข้ามเพื่อลด log สแปม
+        }
+      ).catch(err => {
+        alert("ไม่สามารถเข้าถึงสิทธิ์กล้องวิดีโอได้: " + err);
+        stopScanning();
+      });
+    }
+
+    function stopScanning() {
+      if (qrScanner) {
+        qrScanner.stop().then(() => {
+          html.cameraScannerBox.classList.add('hidden');
+          qrScanner = null;
+        }).catch(err => console.error(err));
+      } else {
+        html.cameraScannerBox.classList.add('hidden');
+      }
+    }
+
+    function showQuickBypass() {
+      html.bypassCard.classList.toggle('hidden');
+    }
+
+    function triggerBypassScan() {
+      const rawCode = document.getElementById('bypassCode').value.trim().toUpperCase();
+      if (!rawCode) return;
+      openInspectionForm(rawCode);
+    }
+
+    // ----------------------------------------------------
+    // IN-FIELD SURVEY MODULE (5-Point Audit ISO)
+    // ----------------------------------------------------
+    function openInspectionForm(id) {
+      const asset = appState.extinguishers.find(x => x.ID === id);
+      const targetId = asset ? asset.ID : id;
+      const targetLoc = asset ? asset.Location : 'จุดตรวจไม่พบรหัสระบบ (ตรวจข้อมูลก่อนส่ง)';
+
+      appState.scannedId = targetId;
+      document.getElementById('formExtId').innerText = "รหัสถังดับเพลิง: " + targetId;
+      document.getElementById('formExtLocation').innerText = "พิกัด: " + targetLoc;
+
+      // รีเซ็ตค่าฟิลด์แบบสอบถามเดิม
+      appState.activeFormChecks = { pressure: true, pin: true, hose: true, body: true };
+      appState.currentPhotoBase64 = null;
+      document.getElementById('remarksText').value = "";
+      document.getElementById('photoPreviewContainer').classList.add('hidden');
+      document.getElementById('photoInput').value = "";
+
+      // ปรับปรุง UI ปุ่มตรวจเป็น ผ่าน (Green)
+      ['pressure', 'pin', 'hose', 'body'].forEach(key => updateCheckUI(key, true));
+
+      // เปลี่ยนหน้าต่างแสดงผล
+      html.inspectorView.classList.add('hidden');
+      html.formView.classList.remove('hidden');
+    }
+
+    function toggleCheck(key, status) {
+      appState.activeFormChecks[key] = status;
+      updateCheckUI(key, status);
+    }
+
+    function updateCheckUI(key, status) {
+      const okBtn = document.getElementById(key + 'OkBtn');
+      const failBtn = document.getElementById(key + 'FailBtn');
+
+      if (status) {
+        okBtn.className = "px-3 py-1 rounded-md text-xs font-semibold bg-green-100 text-green-700 border-2 border-green-600";
+        failBtn.className = "px-3 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200";
+      } else {
+        okBtn.className = "px-3 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200";
+        failBtn.className = "px-3 py-1 rounded-md text-xs font-semibold bg-red-100 text-red-700 border-2 border-red-600";
+      }
+    }
+
+    function triggerCameraInput() {
+      document.getElementById('photoInput').click();
+    }
+
+    function previewPhoto() {
+      const file = document.getElementById('photoInput').files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        appState.currentPhotoBase64 = e.target.result;
+        document.getElementById('photoPreview').src = e.target.result;
+        document.getElementById('photoPreviewContainer').classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearPhoto() {
+      appState.currentPhotoBase64 = null;
+      document.getElementById('photoInput').value = "";
+      document.getElementById('photoPreviewContainer').classList.add('hidden');
+    }
+
+    function showInspectorHome() {
+      html.formView.classList.add('hidden');
+      html.inspectorView.classList.remove('hidden');
+    }
+
+    // ----------------------------------------------------
+    // REPORT DATABASE SAVE PROCESS (SUBMIT SYSTEM)
+    // ----------------------------------------------------
+    function probeSubmit() {
+      const spinner = document.getElementById('submitSpinner');
+      spinner.classList.remove('hidden');
+
+      const payload = {
+        extId: appState.scannedId,
+        location: document.getElementById('formExtLocation').innerText.replace("พิกัด: ", ""),
+        inspectorName: appState.userName || "พนักงานกะอุตสาหกรรม",
+        pressureGaugeOk: appState.activeFormChecks.pressure,
+        safetyPinOk: appState.activeFormChecks.pin,
+        nozzleOk: appState.activeFormChecks.hose,
+        physicalStatusOk: appState.activeFormChecks.body,
+        photoBase64: appState.currentPhotoBase64,
+        remarks: document.getElementById('remarksText').value
+      };
+
+      if (!appState.isOnline) {
+        // บันทึกระบบคิวเก็บแบบออฟไลน์
+        appState.offlineQueue.push(payload);
+        localStorage.setItem('cpram_offline_queue', JSON.stringify(appState.offlineQueue));
+        updateOfflineBadge();
+        
+        // จำลองอัปเดตสถานะถังแบบออฟไลน์
+        const deviceIdx = appState.extinguishers.findIndex(x => x.ID === payload.extId);
+        if (deviceIdx !== -1) {
+          appState.extinguishers[deviceIdx].Status = (payload.pressureGaugeOk && payload.safetyPinOk && payload.nozzleOk && payload.physicalStatusOk) ? 'NORMAL' : 'PROBLEM';
+          renderList();
+        }
+
+        spinner.classList.add('hidden');
+        alert("ทำรายการตรวจสำเร็จ! บันทึกในคิวออฟไลน์เรียบร้อย ระบบจะส่งข้อมูลอัตโนมัติเมื่อตรวจจับสัญญาณเน็ตได้");
+        showInspectorHome();
+        return;
+      }
+
+      // ถ้าออนไลน์ ส่งตรงเข้า Google Apps Script
+      google.script.run
+        .withSuccessHandler(res => {
+          spinner.classList.add('hidden');
+          alert("ส่งบันทึกรายงาน ISO ของอุปกรณ์ " + payload.extId + " เรียบร้อยสมบูรณ์");
+          loadExtinguishers();
+          showInspectorHome();
+        })
+        .withFailureHandler(err => {
+          spinner.classList.add('hidden');
+          alert("เครือข่ายเซิร์ฟเวอร์ขัดข้อง ย้ายเข้าสู่คิวบันทึกออฟไลน์แทน: " + err);
+          appState.offlineQueue.push(payload);
+          localStorage.setItem('cpram_offline_queue', JSON.stringify(appState.offlineQueue));
+          updateOfflineBadge();
+        })
+        .submitInspection(payload);
+    }
+
+    // ----------------------------------------------------
+    // OFFLINE QUEUE TRANSACTION WORKER
+    // ----------------------------------------------------
+    function updateOfflineBadge() {
+      if (appState.offlineQueue.length > 0) {
+        html.pendingSyncBadge.classList.remove('hidden');
+        html.pendingSyncText.innerText = "ค้างส่ง " + appState.offlineQueue.length + " รายการ กดซิงก์ข้อมูล";
+      } else {
+        html.pendingSyncBadge.classList.add('hidden');
+      }
+    }
+
+    function syncOfflineQueue() {
+      if (!appState.isOnline || appState.offlineQueue.length === 0) return;
+      
+      const item = appState.offlineQueue[0];
+      
+      google.script.run
+        .withSuccessHandler(() => {
+          // เอาออกหลังซิงก์ครบหนึ่งรายการ
+          appState.offlineQueue.shift();
+          localStorage.setItem('cpram_offline_queue', JSON.stringify(appState.offlineQueue));
+          updateOfflineBadge();
+          
+          // รันซิงก์ส่งของรายการถัดไปย้อนกลับ
+          if (appState.offlineQueue.length > 0) {
+            syncOfflineQueue();
+          } else {
+            alert("ประมวลซิงก์ข้อมูลออฟไลน์ทั้งหมดสำเร็จแล้ว!");
+            loadExtinguishers();
+          }
+        })
+        .withFailureHandler(() => {
+          console.error("ซิงก์คิวขัดข้องชั่วคราว");
+        })
+        .submitInspection(item);
+    }
+
+    // ----------------------------------------------------
+    // PRESENTATIONAL RENDERS
+    // ----------------------------------------------------
+    function refreshDataList() {
+      loadExtinguishers();
+    }
+
+    function renderList() {
+      html.assetList.innerHTML = "";
+      if (appState.extinguishers.length === 0) {
+        html.assetList.innerHTML = `<p class="text-center text-xs text-gray-400 py-6">ไม่มีถังดับเพลิงในระบบ</p>`;
+        return;
+      }
+
+      appState.extinguishers.forEach(ext => {
+        let statusColor = "bg-amber-100 text-amber-700 border-amber-300";
+        let statusLabel = "ยังไม่ได้เช็ค";
+
+        if (ext.Status === 'NORMAL') {
+          statusColor = "bg-green-100 text-green-700 border-green-300";
+          statusLabel = "ปกติ 🟢";
+        } else if (ext.Status === 'PROBLEM') {
+          statusColor = "bg-red-100 text-red-700 border-red-300";
+          statusLabel = "ชำรุด 🚨";
+        }
+
+        const div = document.createElement('div');
+        div.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer hover:bg-gray-50 active:bg-gray-100";
+        div.onclick = () => openInspectionForm(ext.ID);
+        div.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+              <span class="material-icons text-lg">fire_extinguisher</span>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-gray-800">${ext.ID}</p>
+              <p class="text-[10px] text-gray-400 max-w-[200px] truncate">${ext.Location}</p>
+              <p class="text-[9px] text-[#1B365D] font-medium mt-0.5">ประเภท: ${ext.Type} (${ext.Size})</p>
+            </div>
+          </div>
+          <span class="text-[10px] font-bold px-2 py-1 rounded-md border ${statusColor}">
+            ${statusLabel}
+          </span>
+        `;
+        html.assetList.appendChild(div);
+      });
+    }
+  </script>
+</body>
+</html>
